@@ -1,0 +1,8 @@
+        while listen:  # Will stay in loop until START message received
+            print("Waiting For redisStarter...")
+            message = p.get_message()  # Checks for message
+            if message:
+                command = message['data']  # Get data from message
+                bar_json = command.decode('utf8').replace("'", '"')
+                Selector().FindSuitablePattern(bar_json)
+                print("received: " + str(command))  # Breaks loop
