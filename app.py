@@ -3,12 +3,11 @@ import json
 import os
 import sys
 import threading
-from flask import Flask, request
+from flask import Flask
 sys.path.append(os.path.abspath('../CrossInfra'))
-from Combination import Combination
 from RedisManager import connect
 from BasicFunc import BasicFunc
-
+from Combination import Combination
 
 lst = []
 r = connect()
@@ -18,6 +17,7 @@ redisCheckThread = None
 @app.route('/Selector/Start',methods=['POST'])
 def StartListen():
     global redisCheckThread,listen,lst
+
     comb = Combination()
     comb.InitCombinations()
     lst = comb.GetCombinationLst()
@@ -41,7 +41,7 @@ class RedisCheck(threading.Thread):
         threading.Thread.__init__(self)
     def run(self):
         while listen:
-            data = r.lpop('TemplateList')
+            data = r.lpop(configDef['subscribeOn'])
             if data is not None:
                 s = data.decode("utf-8")
                 dataDic = json.loads(s)
@@ -50,6 +50,13 @@ class RedisCheck(threading.Thread):
                 t = int(dataDic["To"])
                 print("Bars: " + str(barLst) + " From: "+str(f) + " To: "+str(t))
                 relevantTemplates = BasicFunc.findTemplates(lst, t+1)
+                barsTempRelated={
+                    "bars": barLst,
+                    "templates": relevantTemplates
+                }
+                r.lpush(configDef['publishOn'], json.dumps(barsTempRelated))
+
+
 
 
 if __name__ == '__main__':
