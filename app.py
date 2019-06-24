@@ -1,4 +1,3 @@
-import configparser
 import json
 import os
 import sys
@@ -8,6 +7,7 @@ sys.path.append(os.path.abspath('../CrossInfra'))
 from RedisManager import connect
 from BasicFunc import BasicFunc
 from Combination import Combination
+from ConfigManager import ConfigManager
 
 lst = []
 r = connect()
@@ -41,7 +41,7 @@ class RedisCheck(threading.Thread):
         threading.Thread.__init__(self)
     def run(self):
         while listen:
-            data = r.lpop(configDef['subscribeOn'])
+            data = r.lpop(ConfigManager().GetVal('selector_subscribeOn'))
             if data is not None:
                 s = data.decode("utf-8")
                 dataDic = json.loads(s)
@@ -54,14 +54,11 @@ class RedisCheck(threading.Thread):
                     "bars": barLst,
                     "templates": relevantTemplates
                 }
-                r.lpush(configDef['publishOn'], json.dumps(barsTempRelated))
+                r.lpush(ConfigManager().GetVal('selector_publishOn'), json.dumps(barsTempRelated))
 
 
 
 
 if __name__ == '__main__':
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    configDef = config['DEFAULT']
-    app.config['SERVER_NAME'] = configDef['url']
+    app.config['SERVER_NAME'] = ConfigManager().GetVal('selectorUrl')
     app.run(debug=True)
