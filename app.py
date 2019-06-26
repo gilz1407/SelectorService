@@ -82,9 +82,6 @@ class RedisCheck(threading.Thread):
                 }
                 r.lpush(ConfigManager().GetVal('publishOn'), json.dumps(barsTempRelated))
 
-
-
-
 if __name__ == '__main__':
     global configDef
     config = configparser.ConfigParser()
