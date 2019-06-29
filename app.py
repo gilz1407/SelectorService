@@ -1,18 +1,12 @@
 import configparser
 import json
-import os
-import sys
 import threading
 import time
-
 import requests
 from flask import Flask
-sys.path.append(os.path.abspath('../CrossInfra'))
-from RedisManager import connect
-from BasicFunc import BasicFunc
-from Combination import Combination
-from ConfigManager import ConfigManager
-
+import Helper
+#sys.path.append(os.path.abspath('../CrossInfra'))
+from RedisConnection import connect
 
 lst = []
 r = connect()
@@ -25,9 +19,11 @@ redisCheckThread = None
 def StartListen():
     global redisCheckThread, listen, lst
 
-    comb = Combination()
-    comb.InitCombinations()
-    lst = comb.GetCombinationLst()
+    # load combination list from redis
+    combLst = r.get("tempComb")
+    l = json.loads(combLst)
+    lst = eval(l['tl'])
+
     if redisCheckThread is None:
         listen = True
         redisCheckThread = RedisCheck()
@@ -41,11 +37,11 @@ def start_runner():
         not_started = True
         while not_started:
             try:
-                r = requests.get(configDef['url'])
-                if r.status_code == 200:
+                rr = requests.get("http://"+configDef['url'])
+                if rr.status_code == 200:
                     print('Server started, quiting start_loop')
                     not_started = False
-                print(r.status_code)
+                print(rr.status_code)
             except:
                 print('Server not yet started')
             time.sleep(2)
@@ -67,7 +63,7 @@ class RedisCheck(threading.Thread):
         threading.Thread.__init__(self)
     def run(self):
         while listen:
-            data = r.lpop(ConfigManager().GetVal('subscribeOn'))
+            data = r.lpop(configDef['subscribeOn'])
             if data is not None:
                 s = data.decode("utf-8")
                 dataDic = json.loads(s)
@@ -75,12 +71,12 @@ class RedisCheck(threading.Thread):
                 f = int(dataDic["from"])
                 t = int(dataDic["To"])
                 print("Bars: " + str(barLst) + " From: "+str(f) + " To: "+str(t))
-                relevantTemplates = BasicFunc.findTemplates(lst, t+1)
+                relevantTemplates = Helper.searchTemplate(lst, t+1)
                 barsTempRelated={
                     "bars": barLst,
                     "templates": relevantTemplates
                 }
-                r.lpush(ConfigManager().GetVal('publishOn'), json.dumps(barsTempRelated))
+                r.lpush(configDef['publishOn'], json.dumps(barsTempRelated))
 
 if __name__ == '__main__':
     global configDef
