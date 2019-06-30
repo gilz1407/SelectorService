@@ -1,5 +1,6 @@
 import configparser
 import json
+import os
 import threading
 import time
 import requests
@@ -83,6 +84,6 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('config.ini')
     configDef = config['DEFAULT']
-    app.config['SERVER_NAME'] = configDef['url']
+    app.config['SERVER_NAME'] = os.getenv("Selector_HOST")
     start_runner()
     app.run(debug=True)
