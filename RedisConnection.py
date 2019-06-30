@@ -1,3 +1,5 @@
+import os
+
 import redis
 def connect():
     global redisCon
