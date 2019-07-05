@@ -2,31 +2,22 @@ def searchTemplate(lst, expLength):
     middle = findTemplates(lst, expLength)
 
     index = middle
-    while lst[index - 1] == expLength:
+    while lst[index - 1][1] == expLength:
         index = index - 1
 
     return index
 
-def findTemplates(lst, expLength):
-    middle = int(len(lst) / 2)
-    middleVal = lst[middle][1]
 
-    if int(expLength) < middleVal:
-        return findTemplates(lst[:middle], int(expLength))
-    elif int(expLength) > middleVal:
-        return middle + findTemplates(lst[middle:], int(expLength))
+def findTemplates(arr, elem, start=0, end=None):
+    if end is None:
+        end = len(arr) - 1
+    if start > end:
+        return False
 
-    first = 0
-    last = 0
-    # return middle
-    for i in range(middle, len(lst) - 1):
-        if lst[i][1] > lst[middle][1]:
-            last = i
-            break
-
-    for i in range(middle, 0, -1):
-        if lst[i][1] < lst[middle][1]:
-            first = i + 1
-            break
-
-    return lst[first:last]
+    mid = (start + end) // 2
+    if elem == arr[mid][1]:
+        return mid
+    if elem < arr[mid][1]:
+        return findTemplates(arr, elem, start, mid-1)
+    # elem > arr[mid]
+    return findTemplates(arr, elem, mid+1, end)
