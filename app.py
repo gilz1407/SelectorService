@@ -15,14 +15,10 @@ app = Flask(__name__)
 listen = False
 redisCheckThread = None
 
-@app.route('/isUp',methods=['GET'])
-def isUpAndRunning():
-    return ""
-
 @app.route('/Selector/Start',methods=['POST'])
 def StartListen():
     global redisCheckThread, listen, lst
-    print("here")
+
     # load combination list from redis
     combLst = r.get("tempComb")
     l = json.loads(combLst)
@@ -36,12 +32,6 @@ def StartListen():
     else:
         return "Already listening"
 
-@app.route('/Bulker/Stop/',methods=['POST'])
-def StopListen():
-    global listen
-    listen = False
-    return "Listening stopped"
-
 class RedisCheck(threading.Thread):
     global listen
     def __init__(self):
@@ -50,38 +40,20 @@ class RedisCheck(threading.Thread):
         while listen:
             data = r.lpop(configDef['subscribeOn'])
             if data is not None:
-                s = data.decode("utf-8")
-                dataDic = json.loads(s)
+                dataDic = json.loads(data.decode("utf-8"))
                 barLst = dataDic["Bars"]
-                print("Bars: " + str(barLst))
+                last = dataDic["Last"]
+                #print("Bars: " + str(barLst))
+                start = time.time()
                 startIdx = Helper.searchTemplate(lst, len(barLst))
+                end = time.time()
+                print(str(end-start))
                 barsTempRelated = {
                     "bars": barLst,
-                    "templates": startIdx
+                    "templates": startIdx,
+                    "Last": last
                 }
-                r.lpush(configDef['publishOn'], json.dumps(barsTempRelated))
-
-def start_runner():
-    def start_loop():
-        not_started = True
-        while not_started:
-            try:
-                rr = requests.get("http://"+os.getenv("Selector_HOST")+"/isUp")
-
-                if rr.status_code == 200:
-                    time.sleep(2)
-                    print('Server started, quiting start_loop')
-                    not_started = False
-                    StartListen()
-                    break
-                print(rr.status_code)
-            except:
-                print('Server not yet started')
-            time.sleep(5)
-
-    print('Started runner')
-    thread = threading.Thread(target=start_loop)
-    thread.start()
+                r.rpush(configDef['publishOn'], json.dumps(barsTempRelated))
 
 if __name__ == '__main__':
     global configDef
@@ -91,5 +63,4 @@ if __name__ == '__main__':
     r.delete(configDef['publishOn'])
     app.config['SERVER_NAME'] = os.getenv("Selector_HOST")
     StartListen()
-    #app.run(debug=True,use_reloader=False)
     app.run(debug=False)
