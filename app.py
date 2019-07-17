@@ -37,23 +37,28 @@ class RedisCheck(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
     def run(self):
+        barsTempRelated = {
+            "bars": "",
+            "templates": "",
+            "Last": ""
+        }
+        subOn = configDef['subscribeOn']
+        pubOn = configDef['publishOn']
         while listen:
-            data = r.lpop(configDef['subscribeOn'])
+            data = r.lpop(subOn)
             if data is not None:
                 dataDic = json.loads(data.decode("utf-8"))
                 barLst = dataDic["Bars"]
-                last = dataDic["Last"]
                 #print("Bars: " + str(barLst))
-                start = time.time()
-                startIdx = Helper.searchTemplate(lst, len(barLst))
-                end = time.time()
-                print(str(end-start))
-                barsTempRelated = {
-                    "bars": barLst,
-                    "templates": startIdx,
-                    "Last": last
-                }
-                r.rpush(configDef['publishOn'], json.dumps(barsTempRelated))
+                startIdx = 0
+                if len(barLst) > 0:
+                    startIdx = lengthMap[str(len(barLst))]
+
+                barsTempRelated["bars"] = barLst
+                barsTempRelated["templates"] = startIdx
+                barsTempRelated["Last"] = dataDic["Last"]
+
+                r.rpush(pubOn, json.dumps(barsTempRelated))
 
 if __name__ == '__main__':
     global configDef
@@ -61,6 +66,7 @@ if __name__ == '__main__':
     config.read('config.ini')
     configDef = config['DEFAULT']
     r.delete(configDef['publishOn'])
+    lengthMap = json.loads(r.get('lengthMap'))
     app.config['SERVER_NAME'] = os.getenv("Selector_HOST")
     StartListen()
     app.run(debug=False)
