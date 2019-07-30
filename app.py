@@ -58,7 +58,8 @@ class RedisCheck(threading.Thread):
                 barsTempRelated["templates"] = startIdx
                 barsTempRelated["Last"] = dataDic["Last"]
 
-                r.rpush(pubOn, json.dumps(barsTempRelated))
+                if bool(dataDic["Last"]) is True or len(barLst) > 0:
+                    r.rpush(pubOn, json.dumps(barsTempRelated))
 
 if __name__ == '__main__':
     global configDef
